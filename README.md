@@ -105,7 +105,7 @@ A single stealth Chromium browser is launched at container startup. Each `/fetch
 
 ## Credits
 
-Built on [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) by [CloakHQ](https://github.com/CloakHQ) — stealth Chromium with 58 source-level C++ fingerprint patches. If this project helps your work, consider supporting them on [Ko-fi](https://ko-fi.com/cloakhq).
+Built on [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) by [CloakHQ](https://github.com/CloakHQ) — stealth Chromium with 58 source-level C++ fingerprint patches.
 
 ## License
 

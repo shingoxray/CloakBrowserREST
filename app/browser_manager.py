@@ -19,7 +19,7 @@ class BrowserConfig:
     headless: bool = False
     max_sessions: int = 100
     session_ttl_seconds: int = 600
-    default_timeout_ms: int = 30000
+    default_timeout_ms: int = 60000
     default_wait_until: str = "networkidle"
     proxy: Optional[str] = None
 
@@ -29,7 +29,7 @@ class BrowserConfig:
             headless=os.environ.get("BROWSER_HEADLESS", "").lower() in ("true", "1", "yes"),
             max_sessions=int(os.environ.get("MAX_SESSIONS", "100")),
             session_ttl_seconds=int(os.environ.get("SESSION_TTL_MINUTES", "10")) * 60,
-            default_timeout_ms=int(os.environ.get("DEFAULT_TIMEOUT_MS", "30000")),
+            default_timeout_ms=int(os.environ.get("DEFAULT_TIMEOUT_MS", "60000")),
             default_wait_until=os.environ.get("DEFAULT_WAIT_UNTIL", "networkidle"),
             proxy=os.environ.get("PROXY") or None,
         )
@@ -42,12 +42,15 @@ class ContextEntry:
     last_used: float
     options: dict
     humanize: bool = False
+    headless: bool = False
 
 
 class BrowserManager:
     def __init__(self, config: BrowserConfig):
         self._config = config
         self._browser = None
+        self._alt_browser = None
+        self._alt_headless: Optional[bool] = None
         self._contexts: dict[str, ContextEntry] = {}
         self._lock = asyncio.Lock()
         self._start_time = 0.0
@@ -67,10 +70,30 @@ class BrowserManager:
         self._start_time = time.monotonic()
         logger.info("Stealth browser launched")
 
+    async def _ensure_browser(self, headless: bool):
+        if headless == self._config.headless:
+            return self._browser
+        if self._alt_browser is not None and self._alt_headless == headless:
+            return self._alt_browser
+        if self._alt_browser is not None:
+            logger.info("Closing alt browser (headless=%s) for new alt (headless=%s)",
+                         self._alt_headless, headless)
+            await self._alt_browser.close()
+            self._alt_browser = None
+        logger.info("Launching alt browser (headless=%s)", headless)
+        self._alt_browser = await launch_async(
+            headless=headless,
+            proxy=self._config.proxy,
+            humanize=False,
+        )
+        self._alt_headless = headless
+        return self._alt_browser
+
     async def get_or_create_context(
         self,
         session_id: Optional[str],
         humanize: bool = False,
+        headless: bool = False,
         options: Optional[dict] = None,
     ) -> any:
         if session_id and session_id in self._contexts:
@@ -79,6 +102,11 @@ class BrowserManager:
                 logger.warning(
                     "Session %s was created with humanize=%s, ignoring requested humanize=%s (first-call-wins)",
                     session_id, entry.humanize, humanize,
+                )
+            if entry.headless != headless:
+                logger.warning(
+                    "Session %s was created with headless=%s, ignoring requested headless=%s (first-call-wins)",
+                    session_id, entry.headless, headless,
                 )
             entry.last_used = time.monotonic()
             return entry.context
@@ -95,8 +123,9 @@ class BrowserManager:
             if len(self._contexts) >= self._config.max_sessions:
                 self._evict_one()
 
+            browser = await self._ensure_browser(headless)
             ctx_options = self._build_context_options(options or {})
-            context = await self._browser.new_context(**ctx_options)
+            context = await browser.new_context(**ctx_options)
 
             if humanize:
                 cfg = resolve_config("default")
@@ -111,6 +140,7 @@ class BrowserManager:
                     last_used=time.monotonic(),
                     options=ctx_options,
                     humanize=humanize,
+                    headless=headless,
                 )
                 logger.info("Created session context: %s", session_id)
 
@@ -180,6 +210,9 @@ class BrowserManager:
         if self._browser:
             await self._browser.close()
             logger.info("Stealth browser closed")
+        if self._alt_browser:
+            await self._alt_browser.close()
+            logger.info("Alt browser closed")
 
     @property
     def active_session_count(self) -> int:

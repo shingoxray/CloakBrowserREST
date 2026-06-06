@@ -27,17 +27,19 @@ async def fetch(request: Request, body: FetchRequest):
     bm = request.app.state.browser_manager
     opts = body.options
 
-    timeout_ms = opts.timeout_ms if opts else 30000
+    timeout_ms = opts.timeout_ms if opts else 60000
     wait_until = opts.wait_until.value if opts else "networkidle"
     timeout_sec = timeout_ms / 1000
 
     humanize = opts.humanize if opts else False
+    headless = opts.headless if opts else False
 
     try:
         async with asyncio.timeout(timeout_sec + 5):
             context = await bm.get_or_create_context(
                 session_id=body.session_id,
                 humanize=humanize,
+                headless=headless,
                 options=opts.model_dump() if opts else None,
             )
 

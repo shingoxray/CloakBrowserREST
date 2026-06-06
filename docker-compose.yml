@@ -1,0 +1,10 @@
+services:
+  cloakbrowser-rest:
+    build: .
+    ports:
+      - "127.0.0.1:3412:3412"
+    environment:
+      - BROWSER_HEADLESS=false
+      - MAX_SESSIONS=100
+      - SESSION_TTL_MINUTES=10
+    restart: unless-stopped

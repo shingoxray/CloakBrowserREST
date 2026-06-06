@@ -103,6 +103,10 @@ curl http://localhost:3412/health
 
 A single stealth Chromium browser is launched at container startup. Each `/fetch` request opens a new page within an isolated browser context, navigates to the target URL, extracts content (HTML, text, screenshot), then closes the page. The underlying CloakBrowser binary has 58 source-level C++ patches — no JS injection, no flag hacks.
 
+## Credits
+
+Built on [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) by [CloakHQ](https://github.com/CloakHQ) — stealth Chromium with 58 source-level C++ fingerprint patches. If this project helps your work, consider supporting them on [Ko-fi](https://ko-fi.com/cloakhq).
+
 ## License
 
 MIT

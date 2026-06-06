@@ -21,6 +21,7 @@ class FetchOptions(BaseModel):
     timeout_ms: int = Field(60000, description="Navigation timeout in milliseconds", ge=1000, le=120000)
     wait_until: WaitUntil = Field(WaitUntil.NETWORKIDLE, description="Playwright waitUntil strategy")
     wait_for_element: Optional[str] = Field(None, description="CSS selector to wait for after navigation (e.g. .cf-turnstile, #content)")
+    click: Optional[str] = Field(None, description="CSS selector to click after navigation (e.g. for Turnstile checkbox)")
     include_html: bool = Field(True, description="Include page HTML in response")
     include_text: bool = Field(True, description="Include page text in response")
     include_screenshot: bool = Field(False, description="Include base64 screenshot in response")

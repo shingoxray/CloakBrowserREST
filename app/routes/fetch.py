@@ -89,6 +89,10 @@ async def _fetch_page(page, context, body: FetchRequest, timeout_ms: int, wait_u
         await page.wait_for_selector(opts.wait_for_element, timeout=timeout_ms)
         logger.info("Waited for element: %s", opts.wait_for_element)
 
+    if opts and opts.click:
+        await page.click(opts.click, timeout=timeout_ms)
+        logger.info("Clicked element: %s", opts.click)
+
     title = await page.title()
 
     html = None

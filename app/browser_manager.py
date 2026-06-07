@@ -155,10 +155,16 @@ class BrowserManager:
             ctx_opts["user_agent"] = ua
         if viewport := options.get("viewport"):
             ctx_opts["viewport"] = viewport
+        if not ctx_opts.get("viewport"):
+            ctx_opts["viewport"] = {"width": 1920, "height": 1080}
         if locale := options.get("locale"):
             ctx_opts["locale"] = locale
+        if not ctx_opts.get("locale"):
+            ctx_opts["locale"] = "en-US"
         if timezone := options.get("timezone"):
             ctx_opts["timezone_id"] = timezone
+        if not ctx_opts.get("timezone_id"):
+            ctx_opts["timezone_id"] = "America/New_York"
         return ctx_opts
 
     def _evict_one(self):

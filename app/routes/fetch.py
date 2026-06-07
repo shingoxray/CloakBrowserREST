@@ -84,7 +84,11 @@ async def _fetch_page(page, context, body: FetchRequest, timeout_ms: int, wait_u
         await context.add_cookies(opts.cookies)
 
     nav_start = time.monotonic()
-    response = await page.goto(body.url, wait_until=wait_until, timeout=timeout_ms)
+    response = await page.goto(
+        body.url,
+        wait_until="domcontentloaded" if (opts and opts.wait_for_navigation) else wait_until,
+        timeout=timeout_ms,
+    )
     navigation_ms = int((time.monotonic() - nav_start) * 1000)
 
     if opts and opts.wait_for_element:
@@ -96,8 +100,17 @@ async def _fetch_page(page, context, body: FetchRequest, timeout_ms: int, wait_u
         logger.info("Clicked element: %s", opts.click)
 
     if opts and opts.wait_for_navigation:
-        await page.wait_for_load_state("networkidle", timeout=timeout_ms)
-        logger.info("Waited for post-click navigation to settle")
+        wait_start = time.monotonic()
+        while time.monotonic() - wait_start < timeout_ms / 1000:
+            await asyncio.sleep(0.5)
+            try:
+                await page.content()
+            except PlaywrightError:
+                continue
+            title = await page.title()
+            if title not in {"Just a moment...", "Checking your Browser...", "Checking your browser..."}:
+                logger.info("Page passed challenge barrier (title=%s)", title)
+                break
 
     title = await page.title()
 

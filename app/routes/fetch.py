@@ -95,6 +95,10 @@ async def _fetch_page(page, context, body: FetchRequest, timeout_ms: int, wait_u
         await page.click(opts.click, timeout=timeout_ms)
         logger.info("Clicked element: %s", opts.click)
 
+    if opts and opts.wait_for_navigation:
+        await page.wait_for_load_state("networkidle", timeout=timeout_ms)
+        logger.info("Waited for post-click navigation to settle")
+
     title = await page.title()
 
     html = None

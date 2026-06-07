@@ -25,15 +25,18 @@ Fetch a webpage with a stealth browser.
 | `options.headless` | bool | `false` | Run browser headless (no Xvfb display) |
 | `options.timeout_ms` | int | `60000` | Navigation timeout in milliseconds (1000–120000) |
 | `options.wait_until` | string | `"networkidle"` | Playwright waitUntil strategy: `load`, `domcontentloaded`, `networkidle`, `commit` |
+| `options.wait_for_element` | string | `null` | CSS selector to wait for after navigation |
+| `options.click` | string | `null` | CSS selector to click after navigation |
+| `options.wait_for_navigation` | bool | `false` | Wait for Cloudflare challenge / redirect to complete |
 | `options.include_html` | bool | `true` | Include page HTML in response |
 | `options.include_text` | bool | `true` | Include page text in response |
 | `options.include_screenshot` | bool | `false` | Include base64 full-page screenshot in response |
 | `options.headers` | object | `null` | Custom HTTP headers (`{"Authorization": "Bearer ..."}`) |
 | `options.cookies` | array | `null` | Cookies to set before navigation |
 | `options.user_agent` | string | `null` | Custom User-Agent string |
-| `options.viewport` | object | `null` | Viewport dimensions (`{"width": 1920, "height": 1080}`) |
-| `options.locale` | string | `null` | Browser locale (e.g. `en-US`) |
-| `options.timezone` | string | `null` | Timezone (e.g. `America/New_York`) |
+| `options.viewport` | object | `1920×1080` | Viewport dimensions (`{"width": 1920, "height": 1080}`) |
+| `options.locale` | string | `"en-US"` | Browser locale (e.g. `en-US`) |
+| `options.timezone` | string | `"America/New_York"` | Timezone (e.g. `America/New_York`) |
 
 **Minimal request** (everything defaults):
 ```json
@@ -73,6 +76,29 @@ Interactive docs at [http://localhost:3412/docs](http://localhost:3412/docs).
 ## Sessions
 
 Pass an optional `session_id` to persist cookies, localStorage, and IndexedDB across requests. Contexts are isolated — use different IDs for separate sessions. Sessions idle longer than `SESSION_TTL_MINUTES` (default 10) are evicted automatically. Max `MAX_SESSIONS` (default 100).
+
+## Cloudflare Challenge Handling
+
+Set `"wait_for_navigation": true` to automatically wait for Cloudflare managed challenges (Turnstile, JS challenge) to complete before returning page content. The browser:
+
+1. Navigates to the URL (initial HTTP 403 response is normal)
+2. Polls page content every 500ms, retrying silently during post-challenge redirects
+3. Detects challenge completion when the page title changes from `"Just a moment..."` to the real page title
+4. Returns the final content with all cookies (`cf_clearance`) intact
+
+**Default context options** (viewport 1920×1080, locale `en-US`, timezone `America/New_York`) are auto-applied — these are required for Cloudflare's challenge to complete. Without them, Turnstile passes but the `cf_clearance` cookie is never set and the page never redirects.
+
+```json
+{
+  "url": "https://bt4gprx.com/search?q=test",
+  "options": {
+    "wait_for_navigation": true,
+    "timeout_ms": 60000
+  }
+}
+```
+
+Note: Cloudflare challenges may fail through certain proxies due to latency. The typical challenge takes ~7s to complete with a direct connection.
 
 ## Humanize
 

@@ -47,11 +47,13 @@ async def fetch(request: Request, body: FetchRequest):
             page.set_default_timeout(timeout_ms)
 
             try:
-                async with asyncio.timeout(timeout_sec):
-                    result = await _fetch_page(page, context, body, timeout_ms, wait_until)
+                result = await _fetch_page(page, context, body, timeout_ms, wait_until)
                 return result
             finally:
-                await page.close()
+                try:
+                    await page.close()
+                except PlaywrightError:
+                    pass
     except asyncio.TimeoutError:
         logger.warning("Timeout fetching %s", body.url)
         return FetchResponse(
